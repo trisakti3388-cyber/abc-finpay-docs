@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ABC FINPAY API Documentation</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="brand">
+        <h1>ABC FINPAY API</h1>
+        <p>Integration Documentation</p>
+      </div>
+      <nav>
+        <a href="#overview">Overview</a>
+        <a href="#security">Authentication</a>
+        <a href="#setdeposit">SetDeposit</a>
+        <a href="#setdepositv2">SetDepositV2</a>
+        <a href="#callback-deposit">Deposit Callback</a>
+        <a href="#setdepositv3">SetDepositV3</a>
+        <a href="#updatedeposit">UpdateDeposit</a>
+        <a href="#setwithdrawal">SetWithdrawal</a>
+        <a href="#callback-withdrawal">Withdrawal Callback</a>
+        <a href="#checkdeposit">CheckDeposit</a>
+        <a href="#checkwithdrawal">CheckWithdrawal</a>
+        <a href="#checkbalance">CheckBalance</a>
+        <a href="#signature-code">Signature Code</a>
+        <a href="#result-codes">Result Codes</a>
+        <a href="#examples">Examples</a>
+      </nav>
+    </aside>
+
+    <main class="content">
+      <section id="overview">
+        <span class="eyebrow">DEPOSIT / WITHDRAWAL WEB SERVICE</span>
+        <h2>Overview</h2>
+        <p>ABC FINPAY provides deposit, withdrawal, balance checking, and status checking APIs. Requests use SHA-256 signatures built from concatenated field values using your merchant key and merchant value.</p>
+        <div class="callout">
+          <strong>Merchant credentials</strong>
+          <p><code>Merchant Key</code> and <code>Merchant Value</code> are required for signature generation.</p>
+        </div>
+      </section>
+
+      <section id="security">
+        <h2>Authentication & Signature</h2>
+        <p>All endpoints use a <strong>SHA-256</strong> signature generated from concatenated values in the required order. Do not add separators unless the documentation explicitly says so.</p>
+        <pre><code>Signature = SHA256(concatenated_string)</code></pre>
+        <p>Examples throughout this document show the expected input string and resulting hash.</p>
+      </section>
+
+      <section id="setdeposit">
+        <div class="endpoint-header"><div><span class="method post">POST</span><h2>SetDeposit</h2></div><code>https://callback.abcfinpay.com/API/SetDeposit</code></div>
+        <p>Create a deposit transaction through the deposit webservice.</p>
+        <h3>Request Parameters</h3>
+        <table><thead><tr><th>Name</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody>
+          <tr><td>MemberCode</td><td>String</td><td>Yes</td><td>Member Code</td></tr>
+          <tr><td>TransactionID</td><td>String</td><td>Yes</td><td>Transaction ID</td></tr>
+          <tr><td>CustomerName</td><td>String</td><td>Yes</td><td>Customer Name</td></tr>
+          <tr><td>RefID</td><td>String</td><td>Yes</td><td>Reference ID / TID</td></tr>
+          <tr><td>Type</td><td>String</td><td>Yes</td><td>Wing / ABA / ACL / EDA / MAYBANK / Canadia Bank / Union Commercial Bank</td></tr>
+          <tr><td>BankName</td><td>String</td><td>Conditional</td><td>Only when type is not Wing</td></tr>
+          <tr><td>BankCode</td><td>String</td><td>Conditional</td><td>Only when type is not Wing</td></tr>
+          <tr><td>Amount</td><td>number</td><td>Yes</td><td>Amount</td></tr>
+          <tr><td>Merchant</td><td>String</td><td>Yes</td><td>Merchant Key</td></tr>
+          <tr><td>Status</td><td>String</td><td>Yes</td><td>APPROVED / PENDING / REJECTED</td></tr>
+          <tr><td>Signature</td><td>String</td><td>Yes</td><td>SHA-256 hash string</td></tr>
+        </tbody></table>
+        <h3>Response Parameters</h3>
+        <table><thead><tr><th>Name</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody>
+          <tr><td>result</td><td>Int</td><td>Yes</td><td>Result code</td></tr>
+          <tr><td>msg</td><td>String</td><td>Yes</td><td>Result message</td></tr>
+        </tbody></table>
+        <h3>Signature</h3>
+        <p><strong>Type = Wing</strong></p>
+        <pre><code>MerchantKey+MerchantValue+MemberCode+TransactionID+CustomerName+RefID+Type+Amount+Status</code></pre>
+        <p><strong>Type ≠ Wing</strong></p>
+        <pre><code>MerchantKey+MerchantValue+MemberCode+TransactionID+CustomerName+RefID+Type+BankName+BankCode+Amount+Status</code></pre>
+      </section>
+
+      <section id="setdepositv2">
+        <div class="endpoint-header"><div><span class="method post">POST</span><h2>SetDepositV2</h2></div><code>https://callback.abcfinpay.com/API/SetDepositV2</code></div>
+        <p>Create a deposit transaction with <code>NotifUrl</code> callback support.</p>
+        <h3>Additional Request Parameter</h3>
+        <table><thead><tr><th>Name</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody>
+          <tr><td>NotifUrl</td><td>String</td><td>No</td><td>URL for callback update status</td></tr>
+        </tbody></table>
+        <h3>Signature</h3>
+        <p><strong>Type = Wing</strong></p>
+        <pre><code>MerchantKey+MerchantValue+MemberCode+TransactionID+CustomerName+RefID+Type+Amount+Status+NotifUrl</code></pre>
+        <p><strong>Type ≠ Wing</strong></p>
+        <pre><code>MerchantKey+MerchantValue+MemberCode+TransactionID+CustomerName+RefID+Type+BankName+BankCode+Amount+Status+NotifUrl</code></pre>
+      </section>
+
+      <section id="callback-deposit">
+        <h2>Deposit Callback Notification</h2>
+        <p>The API returns a form POST body with deposit result updates.</p>
+        <table><thead><tr><th>Name</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody>
+          <tr><td>MemberCode</td><td>String</td><td>Yes</td><td>Member Code</td></tr>
+          <tr><td>TransactionID</td><td>String</td><td>Yes</td><td>Transaction ID</td></tr>
+          <tr><td>CustomerName</td><td>String</td><td>Yes</td><td>Customer Name</td></tr>
+          <tr><td>TID</td><td>String</td><td>Yes</td><td>Reference ID / TID</td></tr>
+          <tr><td>Amount</td><td>String</td><td>Yes</td><td>Amount; values above 1000 may contain commas</td></tr>
+          <tr><td>Merchant</td><td>String</td><td>Yes</td><td>Merchant Key</td></tr>
+          <tr><td>Status</td><td>String</td><td>Yes</td><td>100 = APPROVED, 101 = PENDING, 102 = REJECTED</td></tr>
+          <tr><td>Signature</td><td>String</td><td>Yes</td><td>SHA-256 hash string</td></tr>
+        </tbody></table>
+        <pre><code>MerchantKey+MerchantValue+MemberCode+TransactionID+CustomerName+TID+Amount+Status</code></pre>
+      </section>
+
+      <section id="setdepositv3">
+        <div class="endpoint-header"><div><span class="method post">POST</span><h2>SetDepositV3</h2></div><code>https://callback.abcfinpay.com/API/SetDepositV3</code></div>
+        <p>Create a deposit with a payment page response.</p>
+        <h3>Request Parameters</h3>
+        <table><thead><tr><th>Name</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody>
+          <tr><td>MemberCode</td><td>String</td><td>Yes</td><td>Member Code</td></tr>
+          <tr><td>TransactionID</td><td>String</td><td>Yes</td><td>Transaction ID</td></tr>
+          <tr><td>CustomerName</td><td>String</td><td>Yes</td><td>Customer Name</td></tr>
+          <tr><td>Type</td><td>String</td><td>Yes</td><td>Wing / ABA / ACL / EDA / MAYBANK / Canadia Bank / Union Commercial Bank</td></tr>
+          <tr><td>Amount</td><td>number</td><td>Yes</td><td>Amount</td></tr>
+          <tr><td>Merchant</td><td>String</td><td>Yes</td><td>Merchant Key</td></tr>
+          <tr><td>NotifUrl</td><td>String</td><td>No</td><td>Callback URL</td></tr>
+          <tr><td>ReturnUrl</td><td>String</td><td>No</td><td>Return URL when payment page closes</td></tr>
+          <tr><td>Signature</td><td>String</td><td>Yes</td><td>SHA-256 hash string</td></tr>
+        </tbody></table>
+        <h3>Response Parameters</h3>
+        <table><thead><tr><th>Name</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody>
+          <tr><td>result</td><td>Int</td><td>Yes</td><td>Result code</td></tr>
+          <tr><td>url</td><td>String</td><td>Yes</td><td>Payment URL</td></tr>
+          <tr><td>msg</td><td>String</td><td>Yes</td><td>Result Message</td></tr>
+          <tr><td>bankaccname</td><td>String</td><td>No</td><td>Bank account name</td></tr>
+          <tr><td>bankaccno</td><td>String</td><td>No</td><td>Bank account number</td></tr>
+        </tbody></table>
+        <pre><code>MerchantKey+MerchantValue+MemberCode+TransactionID+CustomerName+Type+Amount+NotifUrl+ReturnUrl</code></pre>
+      </section>
+
+      <section id="updatedeposit">
+        <div class="endpoint-header"><div><span class="method post">POST</span><h2>UpdateDeposit</h2></div><code>https://callback.abcfinpay.com/API/UpdateDeposit</code></div>
+        <p>Update deposit reference ID.</p>
+        <pre><code>MerchantKey+MerchantValue+MemberCode+TransactionID+CustomerName+Type+RefID</code></pre>
+      </section>
+
+      <section id="setwithdrawal">
+        <div class="endpoint-header"><div><span class="method post">POST</span><h2>SetWithdrawal</h2></div><code>https://callback.abcfinpay.com/API/SetWithdrawal</code></div>
+        <p>Create a withdrawal transaction.</p>
+        <table><thead><tr><th>Name</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody>
+          <tr><td>WithdrawalID</td><td>String</td><td>Yes</td><td>Withdrawal ID</td></tr>
+          <tr><td>FirstName</td><td>String</td><td>Yes</td><td>First Name</td></tr>
+          <tr><td>LastName</td><td>String</td><td>Yes</td><td>Last Name</td></tr>
+          <tr><td>Type</td><td>String</td><td>Yes</td><td>Wing / ABA / ACL / EDA / MAYBANK / Canadia Bank / Union Commercial Bank</td></tr>
+          <tr><td>BankName</td><td>String</td><td>Conditional</td><td>Only when type is not Wing</td></tr>
+          <tr><td>BankAccNo</td><td>String</td><td>Conditional</td><td>Only when type is not Wing</td></tr>
+          <tr><td>WingAccount</td><td>String</td><td>Conditional</td><td>Only when type is Wing</td></tr>
+          <tr><td>Amount</td><td>number</td><td>Yes</td><td>Amount</td></tr>
+          <tr><td>Merchant</td><td>String</td><td>Yes</td><td>Merchant Key</td></tr>
+          <tr><td>NotifUrl</td><td>String</td><td>Yes</td><td>Callback URL</td></tr>
+          <tr><td>Signature</td><td>String</td><td>Yes</td><td>SHA-256 hash string</td></tr>
+        </tbody></table>
+        <h3>Signature</h3>
+        <p><strong>Type = Wing</strong></p>
+        <pre><code>MerchantKey+MerchantValue+WithdrawalID+FirstName+LastName+Type+WingAccount+Amount+NotifUrl</code></pre>
+        <p><strong>Type ≠ Wing</strong></p>
+        <pre><code>MerchantKey+MerchantValue+WithdrawalID+FirstName+LastName+Type+BankName+BankAccNo+Amount+NotifUrl</code></pre>
+      </section>
+
+      <section id="callback-withdrawal">
+        <h2>Withdrawal Callback Notification</h2>
+        <p>Returns a form POST body with the following fields:</p>
+        <pre><code>MerchantKey+MerchantValue+WithdrawalID+FirstName+LastName+Amount+Status</code></pre>
+      </section>
+
+      <section id="checkdeposit">
+        <div class="endpoint-header"><div><span class="method post">POST</span><h2>CheckDeposit</h2></div><code>https://callback.abcfinpay.com/API/CheckDeposit</code></div>
+        <p>Check deposit status.</p>
+        <pre><code>MerchantKey+MerchantValue+MemberCode+TransactionID+CustomerName+RefID+Amount</code></pre>
+      </section>
+
+      <section id="checkwithdrawal">
+        <div class="endpoint-header"><div><span class="method post">POST</span><h2>CheckWithdrawal</h2></div><code>https://callback.abcfinpay.com/API/CheckWithdrawal</code></div>
+        <p>Check withdrawal status.</p>
+        <pre><code>MerchantKey+MerchantValue+WithdrawalID+Amount</code></pre>
+      </section>
+
+      <section id="checkbalance">
+        <div class="endpoint-header"><div><span class="method post">POST</span><h2>CheckBalance</h2></div><code>https://callback.abcfinpay.com/API/CheckBalance</code></div>
+        <p>Check merchant balance.</p>
+        <table><thead><tr><th>Name</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody>
+          <tr><td>Merchant</td><td>String</td><td>Yes</td><td>Merchant Key</td></tr>
+          <tr><td>Signature</td><td>String</td><td>Yes</td><td>SHA-256 hash string</td></tr>
+        </tbody></table>
+        <pre><code>MerchantKey+MerchantValue</code></pre>
+      </section>
+
+      <section id="signature-code">
+        <h2>Signature Code Examples</h2>
+        <h3>C#</h3>
+        <pre><code>public static class SHA_256
+{
+    public static string GenerateSHA256String(string inputString)
+    {
+        SHA256 SHA256 = SHA256Managed.Create();
+        byte[] bytes = Encoding.UTF8.GetBytes(inputString);
+        byte[] hash = SHA256.ComputeHash(bytes);
+        return GetStringFromHash(hash);
+    }
+
+    private static string GetStringFromHash(byte[] hash)
+    {
+        StringBuilder result = new StringBuilder();
+        for (int i = 0; i &lt; hash.Length; i++)
+        {
+            result.Append(hash[i].ToString("X2"));
+        }
+        return result.ToString().ToLower();
+    }
+}</code></pre>
+        <h3>PHP</h3>
+        <pre><code>&lt;?php
+function signature($source)
+{
+    return hash('sha256', $source);
+}
+?&gt;</code></pre>
+      </section>
+
+      <section id="result-codes">
+        <h2>Result Codes</h2>
+        <table><thead><tr><th>Code</th><th>Message</th></tr></thead><tbody>
+          <tr><td>10</td><td>Success</td></tr>
+          <tr><td>11</td><td>Balance Not Enough</td></tr>
+          <tr><td>12</td><td>Already Exists</td></tr>
+          <tr><td>13</td><td>Not Found</td></tr>
+          <tr><td>100</td><td>Approved</td></tr>
+          <tr><td>101</td><td>Pending</td></tr>
+          <tr><td>102</td><td>Rejected</td></tr>
+          <tr><td>1000</td><td>Unknown Error</td></tr>
+          <tr><td>1001</td><td>Signature Not Match</td></tr>
+        </tbody></table>
+      </section>
+
+      <section id="examples">
+        <h2>Examples</h2>
+        <h3>SetDeposit</h3>
+        <pre><code>URL: https://callback.abcfinpay.com/API/SetDeposit
+Method: POST
+Header: content-type: application/x-www-form-urlencoded
+Body:
+MemberCode=M1000&TransactionID=DP0001&CustomerName=Steve Mohammad&RefID=EAC89999&Type=Wing&Amount=180.00&Merchant=STV004&Status=APPROVED&Signature=2e82ea6a5c8d78f8d209bfa988c29fe94865a123057bde8745f08e2185683ae0
+
+Result:
+{"result":100,"msg":"Approved"}</code></pre>
+        <h3>SetDepositV2</h3>
+        <pre><code>URL: https://callback.abcfinpay.com/API/SetDepositV2
+Method: POST
+Body includes NotifUrl and SHA-256 signature.
+
+Result:
+{"result":100,"msg":"Approved"}</code></pre>
+        <h3>CheckDeposit</h3>
+        <pre><code>URL: https://callback.abcfinpay.com/API/CheckDeposit
+Method: POST
+
+Result:
+{"result":100,"msg":"Approved"}</code></pre>
+        <h3>SetWithdrawal</h3>
+        <pre><code>URL: https://callback.abcfinpay.com/API/SetWithdrawal
+Method: POST
+
+Result:
+{"result":10,"msg":"Success"}</code></pre>
+        <h3>CheckBalance</h3>
+        <pre><code>URL: https://callback.abcfinpay.com/API/CheckBalance
+Method: POST
+
+Result:
+{"result":10, "balance":100, "msg":"Success"}</code></pre>
+      </section>
+    </main>
+  </div>
+</body>
+</html>
